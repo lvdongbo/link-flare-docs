@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'LinkFlare',
   description: 'Multi-channel messaging PaaS for global businesses',
   lang: 'en-US',
+  base: '/link-flare-docs/',
   themeConfig: {
     logo: '/logo.png',
     nav: [
