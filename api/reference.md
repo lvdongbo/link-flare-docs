@@ -1,387 +1,118 @@
 # API Reference
 
+## Send a Message
+
+```
+POST /api/messages/send
+```
+
+Send an outbound message to a user on Messenger or WhatsApp.
+
+---
+
 ## Authentication
 
-LinkFlare uses two types of authentication:
+Include your API Key in every request:
 
-| Type | Header | Used For |
-|------|--------|---------|
-| **Admin Secret** | `X-Admin-Secret: <your-admin-secret>` | Platform management: tenants, credentials, configs |
-| **Tenant API Key** | `X-Api-Key: <tenant-api-key>` | Sending messages (hub-api-proxy) |
+```
+X-Api-Key: lf_sk_your_api_key
+```
 
-All requests must use HTTPS. Include the appropriate header based on the endpoint.
+Your API Key was provided when your account was created. You can view it in the LinkFlare Console.
 
 ---
 
-## Tenants
+## Request body
 
-### Create Tenant
-
-**`POST /api/tenants`** — Admin
-
-Creates a new tenant on the platform.
-
-**Request:**
-```http
-POST /api/tenants
-Content-Type: application/json
-X-Admin-Secret: <your-admin-secret>
-
-{
-  "name": "Acme Corp"
-}
-```
-
-**Response `201`:**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Acme Corp",
-  "apiKey": "lf_sk_abc123xyz...",
-  "status": "ACTIVE",
-  "createdAt": "2026-04-20T09:00:00Z"
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `channel` | string | ✅ | `MESSENGER` or `WHATSAPP` |
+| `to` | string | ✅ | Recipient ID. PSID for Messenger; E.164 phone number for WhatsApp (e.g. `+1234567890`) |
+| `type` | string | ✅ | Message type: `text`, `image`, `audio`, `video`, or `file` |
+| `text` | string | ✅ for `text` | Message text content |
+| `mediaUrl` | string | ✅ for media types | Publicly accessible URL of the media file to send |
+| `caption` | string | ❌ | Caption displayed below the media (image and video only) |
 
 ---
 
-### List Tenants
+## Examples
 
-**`GET /api/tenants`** — Admin
+### Text message
 
-Returns all tenants.
-
-**Request:**
-```http
-GET /api/tenants
-X-Admin-Secret: <your-admin-secret>
-```
-
-**Response `200`:**
-```json
-[
-  {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Acme Corp",
-    "status": "ACTIVE",
-    "createdAt": "2026-04-20T09:00:00Z"
-  }
-]
-```
-
----
-
-### Get Tenant
-
-**`GET /api/tenants/{id}`** — Admin
-
-**Request:**
-```http
-GET /api/tenants/550e8400-e29b-41d4-a716-446655440000
-X-Admin-Secret: <your-admin-secret>
-```
-
-**Response `200`:**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Acme Corp",
-  "status": "ACTIVE",
-  "createdAt": "2026-04-20T09:00:00Z",
-  "updatedAt": "2026-04-20T09:00:00Z"
-}
-```
-
----
-
-### Update Tenant
-
-**`PUT /api/tenants/{id}`** — Admin
-
-**Request:**
-```http
-PUT /api/tenants/550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
-X-Admin-Secret: <your-admin-secret>
-
-{
-  "name": "Acme Corporation",
-  "status": "ACTIVE"
-}
-```
-
-**Response `200`:**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Acme Corporation",
-  "status": "ACTIVE",
-  "updatedAt": "2026-04-20T10:00:00Z"
-}
-```
-
----
-
-### Delete Tenant
-
-**`DELETE /api/tenants/{id}`** — Admin
-
-Permanently deletes a tenant and all associated resources.
-
-**Request:**
-```http
-DELETE /api/tenants/550e8400-e29b-41d4-a716-446655440000
-X-Admin-Secret: <your-admin-secret>
-```
-
-**Response `204`:** (no body)
-
----
-
-## Credentials
-
-### Create Credential
-
-**`POST /api/tenants/{tenantId}/credentials`** — Admin
-
-Adds a channel credential for the tenant. The `accessToken` and `appSecret` are encrypted before storage.
-
-**Request:**
-```http
-POST /api/tenants/550e8400-e29b-41d4-a716-446655440000/credentials
-Content-Type: application/json
-X-Admin-Secret: <your-admin-secret>
-
-{
-  "channel": "MESSENGER",
-  "pageId": "123456789",
-  "accessToken": "EAAxxxxx...",
-  "appId": "987654321",
-  "appSecret": "abc123def456..."
-}
-```
-
-**`channel` values:** `MESSENGER`, `WHATSAPP`, `INSTAGRAM`
-
-**Response `201`:**
-```json
-{
-  "id": 1,
-  "tenantId": "550e8400-e29b-41d4-a716-446655440000",
-  "channel": "MESSENGER",
-  "pageId": "123456789",
-  "appId": "987654321",
-  "createdAt": "2026-04-20T09:01:00Z"
-}
-```
-
-> The `accessToken` and `appSecret` are never returned in responses.
-
----
-
-### List Credentials
-
-**`GET /api/tenants/{tenantId}/credentials`** — Admin
-
-**Request:**
-```http
-GET /api/tenants/550e8400-e29b-41d4-a716-446655440000/credentials
-X-Admin-Secret: <your-admin-secret>
-```
-
-**Response `200`:**
-```json
-[
-  {
-    "id": 1,
-    "tenantId": "550e8400-e29b-41d4-a716-446655440000",
+```bash
+curl -X POST https://your-linkflare-host/api/messages/send \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: lf_sk_your_api_key" \
+  -d '{
     "channel": "MESSENGER",
-    "pageId": "123456789",
-    "appId": "987654321",
-    "createdAt": "2026-04-20T09:01:00Z"
-  }
-]
+    "to": "1234567890",
+    "type": "text",
+    "text": "Hello! How can I help you?"
+  }'
+```
+
+### Image message
+
+```bash
+curl -X POST https://your-linkflare-host/api/messages/send \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: lf_sk_your_api_key" \
+  -d '{
+    "channel": "MESSENGER",
+    "to": "1234567890",
+    "type": "image",
+    "mediaUrl": "https://example.com/image.jpg",
+    "caption": "Check this out!"
+  }'
+```
+
+### WhatsApp text message
+
+```bash
+curl -X POST https://your-linkflare-host/api/messages/send \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: lf_sk_your_api_key" \
+  -d '{
+    "channel": "WHATSAPP",
+    "to": "+1234567890",
+    "type": "text",
+    "text": "Your order has been shipped!"
+  }'
 ```
 
 ---
 
-## Webhook Config
+## Response
 
-### Create Webhook Config
+### Success — `200 OK`
 
-**`POST /api/tenants/{tenantId}/webhook-configs`** — Admin
-
-Configures the HTTP callback URL for inbound message delivery.
-
-**Request:**
-```http
-POST /api/tenants/550e8400-e29b-41d4-a716-446655440000/webhook-configs
-Content-Type: application/json
-X-Admin-Secret: <your-admin-secret>
-
-{
-  "callbackUrl": "https://your-app.com/webhook",
-  "secret": "your-signing-secret",
-  "enabled": true
-}
-```
-
-**Response `201`:**
 ```json
 {
-  "id": 1,
-  "tenantId": "550e8400-e29b-41d4-a716-446655440000",
-  "callbackUrl": "https://your-app.com/webhook",
-  "enabled": true,
-  "createdAt": "2026-04-20T09:02:00Z"
+  "messageId": "mid.xyz789",
+  "status": "sent",
+  "timestamp": 1713600000
 }
 ```
 
----
+| Field | Description |
+|-------|-------------|
+| `messageId` | Platform-assigned message ID |
+| `status` | Always `sent` on success |
+| `timestamp` | Unix timestamp (seconds) of when the message was accepted |
 
-### Get Webhook Config
+### Error responses
 
-**`GET /api/tenants/{tenantId}/webhook-configs`** — Admin
+| Status | Meaning |
+|--------|---------|
+| `400 Bad Request` | Missing or invalid request fields. Check the `message` field in the response body for details. |
+| `401 Unauthorized` | Missing or invalid API Key. |
+| `503 Service Unavailable` | The target channel is temporarily unavailable. Retry after a short delay. |
 
-**Request:**
-```http
-GET /api/tenants/550e8400-e29b-41d4-a716-446655440000/webhook-configs
-X-Admin-Secret: <your-admin-secret>
-```
+Error response body:
 
-**Response `200`:**
-```json
-[
-  {
-    "id": 1,
-    "tenantId": "550e8400-e29b-41d4-a716-446655440000",
-    "callbackUrl": "https://your-app.com/webhook",
-    "enabled": true,
-    "createdAt": "2026-04-20T09:02:00Z"
-  }
-]
-```
-
----
-
-## Messages
-
-### Send Message
-
-**`POST /api/messages/send`** — Tenant API Key
-
-Send a message to a user via the tenant's configured channel. This request is handled by **hub-api-proxy**, which proxies the call to Meta Graph API using the tenant's stored credentials.
-
-**Request:**
-```http
-POST /api/messages/send
-Content-Type: application/json
-X-Api-Key: <tenant-api-key>
-
-{
-  "channel": "MESSENGER",
-  "recipient": {
-    "id": "1234567890"
-  },
-  "message": {
-    "text": "Hello! How can I help you today?"
-  }
-}
-```
-
-**Sending a template message (WhatsApp):**
 ```json
 {
-  "channel": "WHATSAPP",
-  "recipient": {
-    "phoneNumber": "+1234567890"
-  },
-  "message": {
-    "type": "template",
-    "template": {
-      "name": "order_confirmation",
-      "language": { "code": "en_US" },
-      "components": []
-    }
-  }
+  "error": "INVALID_API_KEY",
+  "message": "The provided API key is not valid or has been revoked."
 }
 ```
-
-**Response `200`:**
-```json
-{
-  "messageId": "mid.outbound_abc123",
-  "status": "SENT",
-  "timestamp": "2026-04-20T09:05:00Z"
-}
-```
-
-**Error `400`:**
-```json
-{
-  "error": "INVALID_CHANNEL",
-  "message": "No credential configured for channel WHATSAPP"
-}
-```
-
----
-
-## Message Logs
-
-### Query Message Logs
-
-Message log queries are available via the **Console UI** at `https://your-linkflare-host` under **Message Logs**, or via the admin API.
-
-**`GET /api/tenants/{tenantId}/message-logs`** — Admin
-
-| Query Param | Type | Description |
-|-------------|------|-------------|
-| `direction` | enum | `INBOUND` or `OUTBOUND` |
-| `channel` | enum | `MESSENGER`, `WHATSAPP`, `INSTAGRAM` |
-| `from` | ISO datetime | Start of time range |
-| `to` | ISO datetime | End of time range |
-| `page` | integer | Page number (default: 1) |
-| `pageSize` | integer | Items per page (default: 20, max: 100) |
-
-**Request:**
-```http
-GET /api/tenants/550e8400-e29b-41d4-a716-446655440000/message-logs?direction=INBOUND&pageSize=5
-X-Admin-Secret: <your-admin-secret>
-```
-
-**Response `200`:**
-```json
-{
-  "total": 42,
-  "page": 1,
-  "pageSize": 5,
-  "items": [
-    {
-      "id": 101,
-      "messageId": "mid.abc123",
-      "tenantId": "550e8400-e29b-41d4-a716-446655440000",
-      "channel": "MESSENGER",
-      "direction": "INBOUND",
-      "from": "1234567890",
-      "to": "987654321",
-      "messageType": "text",
-      "body": { "text": "Hi there" },
-      "timestamp": 1713600000,
-      "createdAt": "2026-04-20T09:00:00Z"
-    }
-  ]
-}
-```
-
----
-
-## Error Codes
-
-| HTTP Status | Error Code | Description |
-|-------------|-----------|-------------|
-| 400 | `INVALID_REQUEST` | Missing or malformed request body |
-| 401 | `UNAUTHORIZED` | Missing or invalid authentication header |
-| 403 | `FORBIDDEN` | Valid credentials but insufficient permissions |
-| 404 | `NOT_FOUND` | Resource does not exist |
-| 409 | `CONFLICT` | Duplicate resource (e.g., page_id already registered) |
-| 500 | `INTERNAL_ERROR` | Server error |
